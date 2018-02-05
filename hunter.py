@@ -4,16 +4,18 @@
 Created by Wavky on 2018/2/4.
 """
 
-from urllib.parse import urljoin, urlparse
-import requests
 import re
 import threading
 from datetime import datetime
+from urllib.parse import urljoin, urlparse
+
+import requests
+from bs4 import BeautifulSoup
 
 # index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook'
 index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook_pro'
 target_range = '/jp/shop/product/'
-keywords = ['言語','8GB']
+keywords = ['言語', '8GB']
 interval = 5 * 60
 
 
@@ -33,17 +35,6 @@ def get_base_url(html):
     return base
 
 
-def get_title(link_element):
-    """
-    in purpose to extract the title text from <a> element
-    :param link_element: example: <a>title</a>
-    :return: string to title or None
-    """
-    title = re.search(r'<a\b.*>[^<]\s*(.*?)\s*<', link_element, re.M | re.S)
-    if title:
-        title = title.group(1)
-    return title
-
 def main():
     """
     Check our target is shown up or not.
@@ -56,29 +47,34 @@ def main():
     base refer to the url specified by <base> element
     """
     target_main = index
-    host = get_host_path(target_main)
 
     log("start check")
 
-    # type of result_main is HTML text of index page
-    result_main = requests.get(target_main).text
-    base = get_base_url(result_main) or ''
+    # type of html_main is HTML text of index page
+    html_main = requests.get(target_main).text
 
-    link_elements = re.findall(r'<a\b.*?>.*?</a>', result_main, re.M | re.S)
+    host = get_host_path(target_main)
+    base = get_base_url(html_main) or ''
+
+    link_elements = re.findall(r'<a\b.*?>.*?</a>', html_main, re.M | re.S)
     url_title_dict = {}
     for element in link_elements:
         url = get_url(element, host, base)
         if url:
-            url_title_dict[url] = get_title(element) or ''
+            title = BeautifulSoup(element, "html.parser").getText().strip()
+            if url in url_title_dict:
+                url_title_dict[url] = url_title_dict[url] + ", " + title
+            else:
+                url_title_dict[url] = title
 
     # todo: find another way to shrink the list (replace target_range)
     target_sub = list(filter(lambda link: str(link).find(target_range) > -1, url_title_dict.keys()))
     eureka = []
     for link in target_sub:
         log("checking " + link + " ...")
-        result_sub = requests.get(link).text
+        html_sub = requests.get(link).text
         for key in keywords:
-            if result_sub.find(key) > -1:
+            if html_sub.find(key) > -1:
                 eureka.append((key, link))
     if eureka:
         for eu in eureka:
