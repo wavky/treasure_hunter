@@ -10,15 +10,15 @@ import re
 import threading
 from datetime import datetime
 
-index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook'
-# index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook_pro'
+# index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook'
+index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook_pro'
 target_range = '/jp/shop/product/'
-keywords = '言語'
+keywords = ['言語']
 interval = 5 * 60
 
 
 # todo: use db to filter out checked url
-# todo: support multiple keywords
+# todo: get title
 
 
 def get_host_path(url):
@@ -35,18 +35,23 @@ def get_base_url(html):
 
 def main():
     """
-    check our target is shown up or not
+    Check our target is shown up or not.
+
+    target_main refer to the index page
+    target_sub refer to the sub page linked by target_main, which as the real working page here
+    eureka is a list container for the target link from target_sub if it's page contain the keywords
+
+    host refer to the scheme and host part of target_main site's url
+    base refer to the url specified by <base> element
     """
-    # index
     target_main = index
     host = get_host_path(target_main)
 
     log("start check")
 
-    # HTML text of index page
+    # type of result_main is HTML text of index page
     result_main = requests.get(target_main).text
     base = get_base_url(result_main) or ''
-    print(base)
 
     link_elements = re.findall(r'<a[ >].*?</a>', result_main, re.M | re.S)
     urls = set()
@@ -55,18 +60,18 @@ def main():
         if url:
             urls.add(url)
 
-
-    # todo: find another way to shrink the list
-    # products
+    # todo: find another way to shrink the list (replace target_range)
     target_sub = list(filter(lambda link: str(link).find(target_range) > -1, urls))
     eureka = []
     for link in target_sub:
-        log("check " + link + " ...")
+        log("checking " + link + " ...")
         result_sub = requests.get(link).text
-        if result_sub.find(keywords) > -1:
-            eureka.append(link)
+        for key in keywords:
+            if result_sub.find(key) > -1:
+                eureka.append((key, link))
     if eureka:
-        log(eureka)
+        for eu in eureka:
+            log("Eureka! " + 'keyword: ' + eu[0] + '\t' + eu[1])
     else:
         log("miss")
 
