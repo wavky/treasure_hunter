@@ -53,7 +53,7 @@ def main():
     result_main = requests.get(target_main).text
     base = get_base_url(result_main) or ''
 
-    link_elements = re.findall(r'<a[ >].*?</a>', result_main, re.M | re.S)
+    link_elements = re.findall(r'<a\b.*?>.*?</a>', result_main, re.M | re.S)
     urls = set()
     for element in link_elements:
         url = get_url(element, host, base)
