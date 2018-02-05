@@ -13,7 +13,7 @@ from datetime import datetime
 # index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook'
 index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook_pro'
 target_range = '/jp/shop/product/'
-keywords = ['言語']
+keywords = ['言語','8GB']
 interval = 5 * 60
 
 
@@ -32,6 +32,17 @@ def get_base_url(html):
         base = base.group(1)
     return base
 
+
+def get_title(link_element):
+    """
+    in purpose to extract the title text from <a> element
+    :param link_element: example: <a>title</a>
+    :return: string to title or None
+    """
+    title = re.search(r'<a\b.*>[^<]\s*(.*?)\s*<', link_element, re.M | re.S)
+    if title:
+        title = title.group(1)
+    return title
 
 def main():
     """
@@ -54,14 +65,14 @@ def main():
     base = get_base_url(result_main) or ''
 
     link_elements = re.findall(r'<a\b.*?>.*?</a>', result_main, re.M | re.S)
-    urls = set()
+    url_title_dict = {}
     for element in link_elements:
         url = get_url(element, host, base)
         if url:
-            urls.add(url)
+            url_title_dict[url] = get_title(element) or ''
 
     # todo: find another way to shrink the list (replace target_range)
-    target_sub = list(filter(lambda link: str(link).find(target_range) > -1, urls))
+    target_sub = list(filter(lambda link: str(link).find(target_range) > -1, url_title_dict.keys()))
     eureka = []
     for link in target_sub:
         log("checking " + link + " ...")
@@ -71,7 +82,7 @@ def main():
                 eureka.append((key, link))
     if eureka:
         for eu in eureka:
-            log("Eureka! " + 'keyword: ' + eu[0] + '\t' + eu[1])
+            log("Eureka! " + 'keyword: ' + eu[0] + '\t' + url_title_dict[eu[1]] + '\t' + eu[1])
     else:
         log("miss")
 
