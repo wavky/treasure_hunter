@@ -62,10 +62,11 @@ def main():
         title = 'Eureka! From ' + urlparse(host).hostname
         msg = ''
         for eu in eureka:
-            eu_msg = 'Keyword: ' + eu[0] + '\t' + url_title_dict[eu[1]] + '\t' + eu[1]
+            eu_msg = 'Keyword: ' + eu[0] + '\t\t' + url_title_dict[eu[1]] + '\t' + eu[1]
             log("Eureka! " + eu_msg)
-            msg += eu_msg + '\n'
+            msg += eu_msg + '\n\n'
         send_mail(title, msg)
+        log('exiting.')
         sys.exit()
     else:
         log("miss")
@@ -133,12 +134,12 @@ def get_url(link_element: str, host: str, base: str = ''):
     return None
 
 
-def polling():
+def start_polling():
     """
     setup timer and check
     """
     main()
-    timer = threading.Timer(interval, polling)
+    timer = threading.Timer(interval, start_polling)
     timer.start()
 
 
@@ -155,8 +156,10 @@ def send_mail(title: str, body: str):
     password = 'wbwxdgksyqjfbgce'
     host = 'smtp.qq.com'
     port = '465'
+    send_to = 'wavky@icloud.com'
     yag = yagmail.SMTP(account, password, host, port)
-    yag.send(account, title, body)
+    yag.send(send_to, title, body)
+    log('mailing to ' + send_to)
 
 
-polling()
+start_polling()
