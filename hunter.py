@@ -10,17 +10,18 @@ from datetime import datetime
 from urllib.parse import urljoin, urlparse
 
 import requests
+import yagmail
+import sys
 from bs4 import BeautifulSoup
 
-# index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook'
-index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook_pro'
+index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook'
+# index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook_pro'
 target_range = '/jp/shop/product/'
-keywords = ['言語', '8GB']
+keywords = ['言語']
 interval = 5 * 60
 
 
 # todo: use db to filter out checked url
-# todo: get title
 
 
 def get_host_path(url):
@@ -77,8 +78,14 @@ def main():
             if html_sub.find(key) > -1:
                 eureka.append((key, link))
     if eureka:
+        title = 'Eureka! From ' + urlparse(host).hostname
+        msg = ''
         for eu in eureka:
-            log("Eureka! " + 'keyword: ' + eu[0] + '\t' + url_title_dict[eu[1]] + '\t' + eu[1])
+            eu_msg = 'Keyword: ' + eu[0] + '\t' + url_title_dict[eu[1]] + '\t' + eu[1]
+            log("Eureka! " + eu_msg)
+            msg += eu_msg + '\n'
+        send_mail(title, msg)
+        sys.exit()
     else:
         log("miss")
 
@@ -120,6 +127,15 @@ def log(text):
 
 def get_timestamp():
     return str(datetime.now()) + " : "
+
+
+def send_mail(title: str, body: str):
+    account = 'wavky@foxmail.com'
+    password = 'wbwxdgksyqjfbgce'
+    host = 'smtp.qq.com'
+    port = '465'
+    yag = yagmail.SMTP(account, password, host, port)
+    yag.send(account, title, body)
 
 
 polling()
