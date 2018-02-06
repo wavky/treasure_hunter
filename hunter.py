@@ -5,13 +5,13 @@ Created by Wavky on 2018/2/4.
 """
 
 import re
+import sys
 import threading
 from datetime import datetime
 from urllib.parse import urljoin, urlparse
 
 import requests
 import yagmail
-import sys
 from bs4 import BeautifulSoup
 
 index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook'
@@ -47,36 +47,17 @@ def main():
     host refer to the scheme and host part of target_main site's url
     base refer to the url specified by <base> element
     """
-    target_main = index
-
     log("start check")
 
-    # type of html_main is HTML text of index page
-    html_main = requests.get(target_main).text
+    # type of index_html is HTML text of index page
+    index_html = requests.get(index).text
 
-    host = get_host_path(target_main)
-    base = get_base_url(html_main) or ''
+    host = get_host_path(index)
+    base = get_base_url(index_html) or ''
 
-    link_elements = re.findall(r'<a\b.*?>.*?</a>', html_main, re.M | re.S)
-    url_title_dict = {}
-    for element in link_elements:
-        url = get_url(element, host, base)
-        if url:
-            title = BeautifulSoup(element, "html.parser").getText().strip()
-            if url in url_title_dict:
-                url_title_dict[url] = url_title_dict[url] + ", " + title
-            else:
-                url_title_dict[url] = title
+    url_title_dict = get_subject_links_from_index(index_html, host, base)
+    eureka = find_target_from_subjects(url_title_dict.keys())
 
-    # todo: find another way to shrink the list (replace target_range)
-    target_sub = list(filter(lambda link: str(link).find(target_range) > -1, url_title_dict.keys()))
-    eureka = []
-    for link in target_sub:
-        log("checking " + link + " ...")
-        html_sub = requests.get(link).text
-        for key in keywords:
-            if html_sub.find(key) > -1:
-                eureka.append((key, link))
     if eureka:
         title = 'Eureka! From ' + urlparse(host).hostname
         msg = ''
@@ -88,6 +69,46 @@ def main():
         sys.exit()
     else:
         log("miss")
+
+
+def get_subject_links_from_index(index_html, host, base):
+    """
+    find targets link url and it's title
+    :param index_html:
+    :param host:
+    :param base:
+    :return: dict of (url, title)
+    """
+    link_elements = re.findall(r'<a\b.*?>.*?</a>', index_html, re.M | re.S)
+    entire_url_title_dict = {}
+    for element in link_elements:
+        url = get_url(element, host, base)
+        if url:
+            title = BeautifulSoup(element, "html.parser").getText().strip()
+            if url in entire_url_title_dict:
+                entire_url_title_dict[url] = entire_url_title_dict[url] + ", " + title
+            else:
+                entire_url_title_dict[url] = title
+
+    # todo: find another way to shrink the list (replace target_range)
+    target_url_title_dict = dict(
+        filter(lambda item: str(item[0]).find(target_range) > -1, entire_url_title_dict.items()))
+    return target_url_title_dict
+
+
+def find_target_from_subjects(subject_links):
+    """
+    :param subject_links: urls
+    :return: subjects match keywords, dict of (keyword, url), or empty dict
+    """
+    eureka = []
+    for link in subject_links:
+        log("checking " + link + " ...")
+        html_sub = requests.get(link).text
+        for key in keywords:
+            if html_sub.find(key) > -1:
+                eureka.append((key, link))
+    return eureka
 
 
 def get_url(link_element: str, host: str, base: str = ''):
