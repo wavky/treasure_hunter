@@ -53,8 +53,8 @@ def main():
     index_html = ''
     try:
         index_html = requests.get(index).text
-    except ConnectionError:
-        connection_error_process(index)
+    except BaseException as errormsg:
+        connection_error_process(index, str(errormsg))
 
     host = get_host_path(index)
     base = get_base_url(index_html) or ''
@@ -112,8 +112,8 @@ def find_target_from_subjects(subject_links):
         html_sub = ''
         try:
             html_sub = requests.get(link).text
-        except ConnectionError:
-            connection_error_process(link)
+        except BaseException as errormsg:
+            connection_error_process(link, str(errormsg))
 
         for key in keywords:
             if html_sub.find(key) > -1:
@@ -156,23 +156,32 @@ def log(text):
     print(get_timestamp() + str(text))
 
 
+def log_error(error_text):
+    log('<<<Error>>> ' + error_text)
+
+
 def get_timestamp():
     return str(datetime.now()) + " : "
 
 
 def send_mail(title: str, body: str):
-    account = 'wavky@foxmail.com'
-    password = 'wbwxdgksyqjfbgce'
-    host = 'smtp.qq.com'
-    port = '465'
-    send_to = 'wavky@icloud.com'
-    yag = yagmail.SMTP(account, password, host, port)
-    yag.send(send_to, title, body)
-    log('mailing to ' + send_to)
+    try:
+        account = 'wavky@foxmail.com'
+        password = 'wbwxdgksyqjfbgce'
+        host = 'smtp.qq.com'
+        port = '465'
+        send_to = 'wavky@icloud.com'
+        yag = yagmail.SMTP(account, password, host, port)
+        yag.send(send_to, title, body)
+        log('mailing to ' + send_to)
+    except BaseException as error:
+        log_error(str(error))
 
 
-def connection_error_process(url: str):
-    send_mail('<<<Error>>>', 'Access failed on ' + url + ', service shutting down...')
+def connection_error_process(url: str, errormsg: str):
+    body_message = 'Access failed on ' + url + ', service shutting down...\n\nError message:\n' + errormsg
+    log_error(body_message)
+    send_mail('<<<Error>>>', body_message)
     sys.exit()
 
 
