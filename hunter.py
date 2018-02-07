@@ -22,6 +22,7 @@ keywords = ['言語']
 interval = 5 * 60
 
 cache_filename = 'cache.pkl'
+log_filename = 'log.txt'
 
 
 class Cache(object):
@@ -87,7 +88,7 @@ def main():
         title = 'Eureka! From ' + urlparse(host).hostname
         msg = ''
         for eu in eureka:
-            eu_msg = 'Keyword: ' + eu[0] + '\t\t' + latest_url_title_dict[eu[1]] + '\t' + eu[1]
+            eu_msg = 'Keyword: ' + eu[0] + '\t【【' + latest_url_title_dict[eu[1]] + '】】\t' + eu[1]
             log("Eureka! " + eu_msg)
             msg += eu_msg + '\n\n'
         send_mail(title, msg)
@@ -175,10 +176,23 @@ def start_polling():
 
 
 def log(text):
-    print(get_timestamp() + str(text))
+    logmsg = get_timestamp() + str(text)
+    print(logmsg)
+    try:
+        with open(log_filename, 'a', encoding='utf-8') as cache_file:
+            cache_file.write(logmsg + '\n')
+            cache_file.flush()
+    except:
+        print('<<<Error>>> Failed to write the log file.')
 
 
 def log_error(error_text):
+    """
+    base on log(), don't invoke this from log()
+
+    :param error_text:
+    :return:
+    """
     log('<<<Error>>> ' + error_text)
 
 
