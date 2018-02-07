@@ -50,7 +50,11 @@ def main():
     log("start check")
 
     # type of index_html is HTML text of index page
-    index_html = requests.get(index).text
+    index_html = ''
+    try:
+        index_html = requests.get(index).text
+    except ConnectionError:
+        connection_error_process(index)
 
     host = get_host_path(index)
     base = get_base_url(index_html) or ''
@@ -66,7 +70,7 @@ def main():
             log("Eureka! " + eu_msg)
             msg += eu_msg + '\n\n'
         send_mail(title, msg)
-        log('exiting.')
+        log('Targets found, service shutting down...')
         sys.exit()
     else:
         log("miss")
@@ -105,7 +109,12 @@ def find_target_from_subjects(subject_links):
     eureka = []
     for link in subject_links:
         log("checking " + link + " ...")
-        html_sub = requests.get(link).text
+        html_sub = ''
+        try:
+            html_sub = requests.get(link).text
+        except ConnectionError:
+            connection_error_process(link)
+
         for key in keywords:
             if html_sub.find(key) > -1:
                 eureka.append((key, link))
@@ -160,6 +169,11 @@ def send_mail(title: str, body: str):
     yag = yagmail.SMTP(account, password, host, port)
     yag.send(send_to, title, body)
     log('mailing to ' + send_to)
+
+
+def connection_error_process(url: str):
+    send_mail('<<<Error>>>', 'Access failed on ' + url + ', service shutting down...')
+    sys.exit()
 
 
 start_polling()
