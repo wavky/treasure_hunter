@@ -4,6 +4,7 @@
 Created by Wavky on 2018/2/4.
 """
 
+import pickle
 import re
 import sys
 import threading
@@ -20,8 +21,17 @@ target_range = '/jp/shop/product/'
 keywords = ['言語']
 interval = 5 * 60
 
+cache_filename = 'cache.pkl'
 
-# todo: use db to filter out checked url
+
+class Cache(object):
+
+    def __init__(self, missed: list = list(), found: list = list()):
+        self.missed_list = missed
+        self.found_list = found
+
+    def __contains__(self, url):
+        return url in self.missed_list + self.found_list
 
 
 def get_host_path(url):
@@ -49,6 +59,10 @@ def main():
     """
     log("start check")
 
+    cache = restore_cache()
+    if cache is None:
+        cache = Cache()
+
     # type of index_html is HTML text of index page
     index_html = ''
     try:
@@ -60,13 +74,20 @@ def main():
     base = get_base_url(index_html) or ''
 
     url_title_dict = get_subject_links_from_index(index_html, host, base)
-    eureka = find_target_from_subjects(url_title_dict.keys())
+    # filter out that links have been log in cache before, no need to recheck
+    latest_url_title_dict = dict(filter(lambda url_title: url_title[0] not in cache, url_title_dict.items()))
+
+    eureka = find_target_from_subjects(latest_url_title_dict.keys())
+
+    cache.found_list += [item[1] for item in eureka]
+    cache.missed_list += set(latest_url_title_dict.keys()) - set(cache.found_list)
+    serialize_cache(cache)
 
     if eureka:
         title = 'Eureka! From ' + urlparse(host).hostname
         msg = ''
         for eu in eureka:
-            eu_msg = 'Keyword: ' + eu[0] + '\t\t' + url_title_dict[eu[1]] + '\t' + eu[1]
+            eu_msg = 'Keyword: ' + eu[0] + '\t\t' + latest_url_title_dict[eu[1]] + '\t' + eu[1]
             log("Eureka! " + eu_msg)
             msg += eu_msg + '\n\n'
         send_mail(title, msg)
@@ -79,6 +100,7 @@ def main():
 def get_subject_links_from_index(index_html, host, base):
     """
     find targets link url and it's title
+
     :param index_html:
     :param host:
     :param base:
@@ -104,7 +126,7 @@ def get_subject_links_from_index(index_html, host, base):
 def find_target_from_subjects(subject_links):
     """
     :param subject_links: urls
-    :return: subjects match keywords, dict of (keyword, url), or empty dict
+    :return: subjects match keywords, list of (keyword, url), or empty dict
     """
     eureka = []
     for link in subject_links:
@@ -162,6 +184,25 @@ def log_error(error_text):
 
 def get_timestamp():
     return str(datetime.now()) + " : "
+
+
+def serialize_cache(cache: Cache):
+    try:
+        with open(cache_filename, 'wb') as cache_file:
+            pickle.dump(cache, cache_file)
+    except:
+        log_error('Cache writen failure.')
+
+
+def restore_cache():
+    cache = None
+    try:
+        with open(cache_filename, 'rb') as cache_file:
+            cache = pickle.load(cache_file)
+    except:
+        log_error('Cache read failure.')
+    finally:
+        return cache
 
 
 def send_mail(title: str, body: str):
