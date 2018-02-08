@@ -7,7 +7,6 @@ Created by Wavky on 2018/2/4.
 import pickle
 import re
 import sys
-import threading
 from datetime import datetime
 from urllib.parse import urljoin, urlparse
 
@@ -15,11 +14,14 @@ import requests
 import yagmail
 from bs4 import BeautifulSoup
 
+from pytimer import PyTimer
+
 index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook'
 # index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook_pro'
 target_range = '/jp/shop/product/'
 keywords = ['言語']
-interval = 5 * 60
+check_interval = 5 * 60
+status_report_interval = 3 * 60 * 60
 
 cache_filename = 'cache.pkl'
 log_filename = 'log.txt'
@@ -166,11 +168,24 @@ def get_url(link_element: str, host: str, base: str = ''):
 
 def start_polling():
     """
-    setup timer and check
+    setup timer and go
     """
-    main()
-    timer = threading.Timer(interval, start_polling)
-    timer.start()
+    check_timer = PyTimer(check_interval, main)
+    check_timer.start()
+
+    report_timer = PyTimer(status_report_interval, report_status)
+    report_timer.start()
+
+
+def report_status():
+    cache = restore_cache()
+    found = ''
+    if cache:
+        found = str(cache.found_list)
+    title = 'Treasure Hunter Status OK'
+    body = get_timestamp() + '\nFound: ' + (found or 'Nothing.') + '\nReport over.'
+    to = 'wavky@foxmail.com'
+    send_mail(title, body, to)
 
 
 def log(text):
@@ -217,16 +232,15 @@ def restore_cache():
         return cache
 
 
-def send_mail(title: str, body: str):
+def send_mail(title: str, body: str, to: str = 'wavky@icloud.com'):
     try:
         account = 'wavky@foxmail.com'
         password = 'wbwxdgksyqjfbgce'
         host = 'smtp.qq.com'
         port = '465'
-        send_to = 'wavky@icloud.com'
         yag = yagmail.SMTP(account, password, host, port)
-        yag.send(send_to, title, body)
-        log('mailing to ' + send_to)
+        yag.send(to, title, body)
+        log('mailing to ' + to)
     except BaseException as error:
         log_error(str(error))
 
