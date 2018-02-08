@@ -92,8 +92,6 @@ def main():
             log("Eureka! " + eu_msg)
             msg += eu_msg + '\n\n'
         send_mail(title, msg)
-        log('Targets found, service shutting down...')
-        sys.exit()
     else:
         log("miss")
 
