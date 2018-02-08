@@ -170,6 +170,9 @@ def start_polling():
     """
     setup timer and go
     """
+    # initial run
+    main()
+
     check_timer = PyTimer(check_interval, main)
     check_timer.start()
 
