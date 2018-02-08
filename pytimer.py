@@ -11,7 +11,7 @@ from threading import Timer
 class PyTimer(object):
     """Python equivalent of JavaScript setInterval function
        Call a function after a specified number of seconds:
-            timer = pythonTimer.PyTimer(5.0, handler_func, args=[], kwargs={})
+            timer = PyTimer(5.0, handler_func, args=[], kwargs={})
             timer.start()
             timer.stop()     # stop the timer's action if it's still waiting
         Ref: https://hg.python.org/cpython/file/2.7/Lib/threading.py

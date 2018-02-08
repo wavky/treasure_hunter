@@ -29,7 +29,7 @@ log_filename = 'log.txt'
 
 class Cache(object):
 
-    def __init__(self, missed: list = list(), found: list = list()):
+    def __init__(self, missed: list = (), found: list = ()):
         self.missed_list = missed
         self.found_list = found
 
