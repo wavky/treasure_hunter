@@ -157,3 +157,4 @@ crashlytics-build.properties
 fabric.properties
 /cache.pkl
 /log.txt
+/.idea/
