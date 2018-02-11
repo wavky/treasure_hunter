@@ -13,8 +13,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 import yagmail
 from bs4 import BeautifulSoup
-
-from pytimer import PyTimer
+from loopytimer import LoopyTimer
 
 index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook'
 # index = 'https://www.apple.com/jp/shop/browse/home/specialdeals/mac/macbook_pro'
@@ -173,10 +172,10 @@ def start_polling():
     # initial run
     main()
 
-    check_timer = PyTimer(check_interval, main)
+    check_timer = LoopyTimer(check_interval, main)
     check_timer.start()
 
-    report_timer = PyTimer(status_report_interval, report_status)
+    report_timer = LoopyTimer(status_report_interval, report_status)
     report_timer.start()
 
 
